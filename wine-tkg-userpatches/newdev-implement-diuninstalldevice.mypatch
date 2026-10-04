@@ -1,0 +1,60 @@
+diff --git a/dlls/newdev/main.c b/dlls/newdev/main.c
+index dcf7e391..faa56d80 100644
+--- a/dlls/newdev/main.c
++++ b/dlls/newdev/main.c
+@@ -165,3 +165,29 @@ BOOL WINAPI DiInstallDriverW(HWND parent, const WCHAR *inf_path, DWORD flags, BO
+     FIXME("parent %p, inf_path %s, flags %#lx, reboot %p, stub!\n", parent, debugstr_w(inf_path), flags, reboot);
+     return TRUE;
+ }
++
++/***********************************************************************
++ *           DiUninstallDevice (NEWDEV.@)
++ */
++BOOL WINAPI DiUninstallDevice(HWND parent, HDEVINFO set, SP_DEVINFO_DATA *device, DWORD flags, BOOL *reboot)
++{
++    SP_DEVINSTALL_PARAMS_W params = {sizeof(params)};
++
++    TRACE("parent %p, set %p, device %p, flags %#lx, reboot %p.\n", parent, set, device, flags, reboot);
++
++    if (flags)
++    {
++        SetLastError(ERROR_INVALID_FLAGS);
++        return FALSE;
++    }
++
++    if (reboot) *reboot = FALSE;
++
++    if (!SetupDiCallClassInstaller(DIF_REMOVE, set, device))
++        return FALSE;
++
++    if (reboot && SetupDiGetDeviceInstallParamsW(set, device, &params))
++        *reboot = !!(params.Flags & (DI_NEEDREBOOT | DI_NEEDRESTART));
++
++    return TRUE;
++}
+diff --git a/dlls/newdev/newdev.spec b/dlls/newdev/newdev.spec
+index 6d45c7e1..cfb0f7b4 100644
+--- a/dlls/newdev/newdev.spec
++++ b/dlls/newdev/newdev.spec
+@@ -4,7 +4,7 @@
+ @ stdcall DiInstallDriverW(ptr wstr long ptr)
+ @ stub DiRollbackDriver
+ @ stub DiShowUpdateDevice
+-@ stub DiUninstallDevice
++@ stdcall DiUninstallDevice(long ptr ptr long ptr)
+ @ stdcall InstallNewDevice(long ptr ptr)
+ @ stdcall InstallSelectedDriver(long ptr wstr long ptr)
+ @ stub InstallWindowsUpdateDriver
+diff --git a/include/newdev.h b/include/newdev.h
+index 94b8a940..2520e06c 100644
+--- a/include/newdev.h
++++ b/include/newdev.h
+@@ -43,6 +43,8 @@ BOOL WINAPI UpdateDriverForPlugAndPlayDevicesW(HWND parent, const WCHAR *hardwar
+ #define DIIRFLAG_SYSTEM_BITS (DIIRFLAG_INF_ALREADY_COPIED | DIIRFLAG_FORCE_INF | DIIRFLAG_HW_USING_THE_INF \
+         | DIIRFLAG_HOTPATCH | DIIRFLAG_NOBACKUP | DIIRFLAG_PRE_CONFIGURE_INF | DIIRFLAG_INSTALL_AS_SET)
+ 
++BOOL WINAPI DiUninstallDevice(HWND,HDEVINFO,PSP_DEVINFO_DATA,DWORD,PBOOL);
++
+ BOOL WINAPI DiInstallDriverA(HWND parent, const char *inf_path, DWORD flags, BOOL *reboot);
+ BOOL WINAPI DiInstallDriverW(HWND parent, const WCHAR *inf_path, DWORD flags, BOOL *reboot);
+ #define DiInstallDriver WINELIB_NAME_AW(DiInstallDriver)

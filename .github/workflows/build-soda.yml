@@ -44,6 +44,9 @@ env:
 
     This is a Wine TKG build based on Valve's Wine (experimental bleeding edge) source code.
 
+    Unofficial fork of Bottles' Soda with fixes for StarDesk:
+    - Implemented `newdev.DiUninstallDevice`, which StarDesk's backend calls on startup.
+
     - Updated the Valve experimental bleeding edge base to September 4, 2026 and Wine-TKG to `04ddf86c`.
     - Fixed first-run KiriKiri WMV and WMA playback by detecting its media reader and releasing flushed samples.
     - Fixed Battle.net crashes caused by a missing Steam game ID during XInput setup.
@@ -99,7 +102,7 @@ jobs:
           pgo=false
           stable=false
           if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" == "refs/heads/soda" ]]; then
-            pgo=true
+            # PGO needs a baseline artifact from this repo; enable via workflow_dispatch once one exists.
             stable=true
           else
             version="$version-${GITHUB_SHA::7}"
@@ -108,7 +111,7 @@ jobs:
               version="$version-pgo"
             fi
           fi
-          component_name="soda-$version-x86_64"
+          component_name="soda-stardesk-$version-x86_64"
           echo "archive_name=$component_name.tar.xz" >> "$GITHUB_OUTPUT"
           echo "component_name=$component_name" >> "$GITHUB_OUTPUT"
           echo "pgo=$pgo" >> "$GITHUB_OUTPUT"
@@ -731,7 +734,7 @@ jobs:
           if [[ "$GITHUB_EVENT_NAME" != "push" || "$GITHUB_REF" != "refs/heads/soda" ]]; then
             version="$version-${GITHUB_SHA::7}"
           fi
-          component_name="soda-$version-aarch64"
+          component_name="soda-stardesk-$version-aarch64"
           echo "archive_name=$component_name.tar.xz" >> "$GITHUB_OUTPUT"
           echo "component_name=$component_name" >> "$GITHUB_OUTPUT"
 
@@ -930,11 +933,11 @@ jobs:
           ARCHIVE_NAME: ${{ needs.build.outputs.archive_name }}
           ARM64_ARCHIVE_NAME: ${{ needs.arm64.outputs.archive_name }}
         run: |
-          tag="soda-$WINE_VERSION-$REVISION"
+          tag="soda-stardesk-$WINE_VERSION-$REVISION"
           file="$ARCHIVE_NAME"
           arm64_file="$ARM64_ARCHIVE_NAME"
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "Release $tag already exists." >&2
             exit 1
           fi
-          gh release create "$tag" "$file" "$arm64_file" --target "$GITHUB_SHA" --title "Soda $WINE_VERSION-$REVISION" --notes "$RELEASE_NOTES" --latest
+          gh release create "$tag" "$file" "$arm64_file" --target "$GITHUB_SHA" --title "Soda StarDesk $WINE_VERSION-$REVISION" --notes "$RELEASE_NOTES" --latest
